@@ -33,15 +33,18 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    _getCards();
   }
 
-  Future<List<Map>> _getCards() async {
-    var prefs = await SharedPreferences.getInstance();
-    var todo = prefs.getStringList("todo") ?? [];
-    for (var jsonStr in todo) {
-      cards.add(jsonDecode(jsonStr));
-    }
-    return cards;
+  void _getCards() {
+    SharedPreferences.getInstance().then((prefs) {
+      var todo = prefs.getStringList("todo") ?? [];
+      for (var jsonStr in todo) {
+        setState(() {
+          cards.add(jsonDecode(jsonStr));
+        });
+      }
+    });
   }
 
   Future<String?> _showTextInputDialog(BuildContext context) async {
@@ -83,6 +86,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 onChanged: (value) {
                   setState(() {
                     cards[index]['state'] = value ?? false;
+                    SharedPreferences.getInstance().then((prefs) async {
+                      var todo = prefs.getStringList("todo") ?? [];
+                      todo[index] = jsonEncode(cards[index]);
+                      await prefs.setStringList("todo", todo);
+                    });
                   });
                 },
                 value: cards[index]['state']),
@@ -112,27 +120,11 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
       body: Center(
-        child: FutureBuilder<List>(
-            future: _getCards(),
-            builder: (context, snapshot) {
-              switch (snapshot.connectionState) {
-                case ConnectionState.none:
-                  return const Text('Waiting to start');
-                case ConnectionState.waiting:
-                  return const Text('Loading...');
-                default:
-                  if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}');
-                  } else {
-                    return ListView.builder(
-                        itemCount: snapshot.data!.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return _todoWidget(index);
-                        });
-                  }
-              }
-            }),
-      ),
+          child: ListView.builder(
+              itemCount: cards.length,
+              itemBuilder: (BuildContext context, int index) {
+                return _todoWidget(index);
+              })),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () async {
