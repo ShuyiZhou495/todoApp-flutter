@@ -123,7 +123,29 @@ class _MyHomePageState extends State<MyHomePage> {
           child: ListView.builder(
               itemCount: cards.length,
               itemBuilder: (BuildContext context, int index) {
-                return _todoWidget(index);
+                return Dismissible(
+                    key: ValueKey<String>(cards[index]['title']),
+                    child: _todoWidget(index),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      padding: const EdgeInsets.all(10),
+                      child: Container(
+                          padding: const EdgeInsets.only(right: 10),
+                          color: Colors.redAccent,
+                          child: const Align(
+                              alignment: Alignment.centerRight,
+                              child: Icon(Icons.delete))),
+                    ),
+                    onDismissed: (DismissDirection direction) {
+                      setState(() {
+                        cards.removeAt(index);
+                        SharedPreferences.getInstance().then((prefs) async {
+                          var todo = prefs.getStringList("todo") ?? [];
+                          todo.removeAt(index);
+                          await prefs.setStringList("todo", todo);
+                        });
+                      });
+                    });
               })),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
