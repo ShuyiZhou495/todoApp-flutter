@@ -35,24 +35,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    // SharedPreferences.getInstance().then((prefs) {
-    //   var todo = prefs.getStringList("todo") ?? [];
-    //   for (var jsonStr in todo) {
-    //     var mapObj = jsonDecode(jsonStr);
-    //     var title = mapObj['title'];
-    //     var state = mapObj['state'];
-    //     setState(() {
-    //       cards.add(TodoCardWidget(
-    //         label: title,
-    //         state: state,
-    //         number: cards.length,
-    //       ));
-    //     });
-    //   }
-    // });
   }
 
-  Future<List<dynamic>> getCards() async {
+  Future<List<dynamic>> _getCards() async {
     var prefs = await SharedPreferences.getInstance();
     List<Widget> cards = [];
     var todo = prefs.getStringList("todo") ?? [];
@@ -119,7 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: FutureBuilder<List>(
-            future: getCards(),
+            future: _getCards(),
             builder: (context, snapshot) {
               switch (snapshot.connectionState) {
                 case ConnectionState.none:
