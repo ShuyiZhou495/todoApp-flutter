@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-///////////////////////////////
-// ① Main：Flutterアプリもmain()からコードが実行されます。
-// `void main() => runApp(MyApp());` でも意味は同じです。
 void main() {
   return runApp(const MyApp());
 }
@@ -29,7 +26,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<Widget> cards = [];
+  List<Map> cards = [];
+
   final _textFieldController = TextEditingController();
 
   @override
@@ -37,21 +35,11 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
   }
 
-  Future<List<dynamic>> _getCards() async {
+  Future<List<Map>> _getCards() async {
     var prefs = await SharedPreferences.getInstance();
-    List<Widget> cards = [];
     var todo = prefs.getStringList("todo") ?? [];
     for (var jsonStr in todo) {
-      // JSON形式の文字列から辞書形式のオブジェクトに変換し、各要素を取り出し
-      var mapObj = jsonDecode(jsonStr);
-
-      var title = mapObj['title'];
-      var state = mapObj['state'];
-      cards.add(TodoCardWidget(
-        label: title,
-        state: state,
-        number: cards.length,
-      ));
+      cards.add(jsonDecode(jsonStr));
     }
     return cards;
   }
@@ -81,6 +69,27 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         );
       },
+    );
+  }
+
+  Widget _todoWidget(int index) {
+    return Card(
+      margin: const EdgeInsets.all(10),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          children: [
+            Checkbox(
+                onChanged: (value) {
+                  setState(() {
+                    cards[index]['state'] = value ?? false;
+                  });
+                },
+                value: cards[index]['state']),
+            Text(cards[index]['title']),
+          ],
+        ),
+      ),
     );
   }
 
@@ -118,7 +127,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     return ListView.builder(
                         itemCount: snapshot.data!.length,
                         itemBuilder: (BuildContext context, int index) {
-                          return snapshot.data![index];
+                          return _todoWidget(index);
                         });
                   }
               }
@@ -130,66 +139,16 @@ class _MyHomePageState extends State<MyHomePage> {
           var resultLabel = await _showTextInputDialog(context);
           if (resultLabel != null && resultLabel != "") {
             setState(() {
-              cards.add(TodoCardWidget(
-                label: resultLabel,
-                state: false,
-                number: cards.length,
-              ));
+              var mapObj = {'title': resultLabel, 'state': false};
+              cards.add(mapObj);
               SharedPreferences.getInstance().then((prefs) async {
                 var todo = prefs.getStringList("todo") ?? [];
-                todo.add(jsonEncode({'title': resultLabel, 'state': false}));
+                todo.add(jsonEncode(mapObj));
                 await prefs.setStringList("todo", todo);
               });
             });
           }
         },
-      ),
-    );
-  }
-}
-
-class TodoCardWidget extends StatefulWidget {
-  final String label;
-  bool state;
-  final int number;
-
-  TodoCardWidget(
-      {Key? key,
-      required this.label,
-      required this.state,
-      required this.number})
-      : super(key: key);
-
-  @override
-  _TodoCardWidgetState createState() => _TodoCardWidgetState();
-}
-
-class _TodoCardWidgetState extends State<TodoCardWidget> {
-  void _changeState(value) {
-    setState(() {
-      widget.state = value ?? false;
-    });
-    SharedPreferences.getInstance().then((prefs) {
-      var todo = prefs.getStringList("todo") ?? [];
-      var jsonObj = jsonDecode(todo[widget.number]);
-      jsonObj['state'] = value ?? false;
-      todo[widget.number] = jsonEncode(jsonObj);
-      prefs.setStringList("todo", todo);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(10),
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        child: Row(
-          children: [
-            Checkbox(onChanged: _changeState, value: widget.state),
-            Text(widget.label),
-          ],
-        ),
       ),
     );
   }
