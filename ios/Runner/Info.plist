@@ -27,7 +27,7 @@
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>always use</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>location</string>
+	<string>This app needs access to location when open.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
