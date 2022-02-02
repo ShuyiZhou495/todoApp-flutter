@@ -1,16 +1,9 @@
 # todo
 
-A new Flutter project.
+## Google API
+<par>Since I hardcoded the API key in the original code, in the code here, I didn't insert my key. So, the code can not run.</par>
+<par>Keys are substituted with "API google key" string in [AppDelegate.swift](./ios/Runner/AppDelegate.swift), [AndroidManifest.xml](./android/app/src/main/AndroidManifest.xml) and [places_service.dart](./lib/services/places_service.dart)</par>
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## References
+- [Prof. nishiyama's tutorial](http://mobile-app.yuukinishiyama.com/)
+- [Andy Julow's tutorial](https://www.youtube.com/watch?v=sL74UNLssV8)

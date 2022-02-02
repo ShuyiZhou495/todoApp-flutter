@@ -37,10 +37,6 @@ dependencies:
 
   shared_preferences: ^2.0.11
 
-  location: ^4.2.0
-
-  flutter_map: ^0.14.0
-
   provider: ^6.0.2
 
   geolocator: ^8.0.5
