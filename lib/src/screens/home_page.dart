@@ -1,5 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:todo/models/place.dart';
+
+import 'package:todo/src/screens/location_insert.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
@@ -12,38 +18,12 @@ class _MyHomePageState extends State<MyHomePage> {
   List<Map> cards = [];
 
   final _textFieldController = TextEditingController();
-
-  bool _serviceEnabled = false;
-  PermissionStatus _permissionGranted = PermissionStatus.denied;
-  Future<LocationData>? _locationData;
+  final _locFieldController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _getCards();
-    _accessLocation();
-  }
-
-  void _accessLocation() {
-    Location location = Location();
-    location.serviceEnabled().then((value) async {
-      _serviceEnabled = value;
-      if (!_serviceEnabled) {
-        _serviceEnabled = await location.requestService();
-        if (!_serviceEnabled) {
-          return;
-        }
-      }
-      _permissionGranted = await location.hasPermission();
-      if (_permissionGranted == PermissionStatus.denied) {
-        _permissionGranted = await location.requestPermission();
-        if (_permissionGranted != PermissionStatus.granted) {
-          return;
-        }
-      }
-
-      _locationData = location.getLocation();
-    });
   }
 
   void _getCards() {
@@ -57,17 +37,36 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Future<String?> _showTextInputDialog(BuildContext context) async {
+  Future<Place?> _showLocationSelect(BuildContext context) async {
+    return Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return const LocationInsert();
+    }));
+  }
+
+  Future<Map<String, dynamic>?> _showTextInputDialog(
+      BuildContext context) async {
+    Place? newLoc;
+
     return showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('タイトル'),
-          content: Column(children: [
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
             TextField(
               controller: _textFieldController,
               decoration: const InputDecoration(hintText: "文字列を入力してください。"),
             ),
+            TextField(
+                controller: _locFieldController,
+                readOnly: true,
+                decoration: const InputDecoration(hintText: "場所を入力してください。"),
+                onTap: () async {
+                  _showLocationSelect(context).then((value) {
+                    _locFieldController.text = value!.name;
+                    newLoc = value;
+                  });
+                })
           ]),
           actions: <Widget>[
             ElevatedButton(
@@ -77,8 +76,24 @@ class _MyHomePageState extends State<MyHomePage> {
             ElevatedButton(
               child: const Text('OK'),
               onPressed: () {
-                Navigator.pop(context, _textFieldController.text);
+                Navigator.pop(context, {
+                  "state": false,
+                  "title": _textFieldController.text,
+                  "place": newLoc == null
+                      ? null
+                      : {
+                          "name": newLoc!.name,
+                          "vicinity": newLoc!.vicinity,
+                          "geometry": {
+                            "location": {
+                              "lat": newLoc!.geometry.location.lat,
+                              "lng": newLoc!.geometry.location.lng
+                            }
+                          }
+                        }
+                });
                 _textFieldController.clear();
+                _locFieldController.clear();
               },
             ),
           ],
@@ -107,58 +122,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
                 value: cards[index]['state']),
             Text(cards[index]['title']),
+            if (cards[index]['place'] != null) Icon(Icons.place)
           ],
         ),
       ),
     );
-  }
-
-  void _toMap() {
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return Scaffold(
-        appBar: AppBar(title: const Text("My Map")),
-        body: Center(
-          child: FutureBuilder(
-            future: _locationData,
-            builder: (
-              BuildContext context,
-              AsyncSnapshot<LocationData> snapshot,
-            ) {
-              if (snapshot.hasData) {
-                var loc = snapshot.data;
-                return FlutterMap(
-                  options: MapOptions(
-                      center: (loc != null)
-                          ? LatLng(loc.latitude!, loc.longitude!)
-                          : LatLng(0, 0),
-                      zoom: 18.0),
-                  layers: [
-                    TileLayerOptions(
-                      urlTemplate:
-                          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                      subdomains: ['a', 'b', 'c'],
-                      attributionBuilder: (_) =>
-                          const Text("© OpenStreetMap contributors"),
-                    ),
-                    MarkerLayerOptions(markers: [
-                      Marker(
-                        width: 80.0,
-                        height: 80.0,
-                        point: (loc != null)
-                            ? LatLng(loc.latitude!, loc.longitude!)
-                            : LatLng(0, 0),
-                        builder: (ctx) => const Icon(Icons.location_pin),
-                      )
-                    ]),
-                  ],
-                );
-              }
-              return const Text("地図をロード中");
-            },
-          ),
-        ),
-      );
-    }));
   }
 
   @override
@@ -177,10 +145,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
               },
               icon: const Icon(Icons.delete)),
-          IconButton(
-            icon: const Icon(Icons.map),
-            onPressed: _toMap,
-          )
         ],
       ),
       body: Center(
@@ -215,13 +179,12 @@ class _MyHomePageState extends State<MyHomePage> {
         child: const Icon(Icons.add),
         onPressed: () async {
           var resultLabel = await _showTextInputDialog(context);
-          if (resultLabel != null && resultLabel != "") {
+          if (resultLabel != null && resultLabel["title"] != "") {
             setState(() {
-              var mapObj = {'title': resultLabel, 'state': false};
-              cards.add(mapObj);
+              cards.add(resultLabel);
               SharedPreferences.getInstance().then((prefs) async {
                 var todo = prefs.getStringList("todo") ?? [];
-                todo.add(jsonEncode(mapObj));
+                todo.add(jsonEncode(resultLabel));
                 await prefs.setStringList("todo", todo);
               });
             });

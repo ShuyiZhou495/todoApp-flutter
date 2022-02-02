@@ -6,16 +6,17 @@ import 'package:provider/provider.dart';
 import 'package:todo/blocs/application_bloc.dart';
 import 'package:todo/models/place.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+class LocationInsert extends StatefulWidget {
+  const LocationInsert({Key? key}) : super(key: key);
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  _LocationInsertState createState() => _LocationInsertState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _LocationInsertState extends State<LocationInsert> {
   Completer<GoogleMapController> _mapController = Completer();
   StreamSubscription? locationSubscription;
+  Place? place;
 
   @override
   void initState() {
@@ -25,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
     locationSubscription =
         applicationBloc.selectedLocation.stream.listen((place) {
       _goToPlace(place);
+      this.place = place;
     });
     super.initState();
   }
@@ -43,6 +45,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final applicationBloc = Provider.of<ApplicationBloc>(context);
 
     return Scaffold(
+        floatingActionButton: FloatingActionButton(
+            child: const Icon(Icons.add_location_rounded),
+            onPressed: () {
+              debugPrint("${place!.name}");
+              // locationSubscription!.cancel();
+              Navigator.pop(context, place);
+            }),
         body: (applicationBloc.currentLocation == null)
             ? const Center(
                 child: CircularProgressIndicator(),
